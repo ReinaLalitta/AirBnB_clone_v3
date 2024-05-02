@@ -1,39 +1,30 @@
 #!/usr/bin/python3
-"""main app file for Flask instance in REST API
-"""
-from flask import Flask
-from flask import jsonify
+"""Version 1 of the HBNB REST api"""
+from flask import Flask, jsonify
 from flask_cors import CORS
 from models import storage
 from api.v1.views import app_views
-import os
+from os import getenv
 
-app = Flask(__name__)
+app = Flask('v1')
+app.url_map.strict_slashes = False
 app.register_blueprint(app_views)
-CORS(app, resources={r'/*': {'origins': '0.0.0.0'}})
+CORS(app, resources=r"/api/v1/*", origins="*")
 
 
-def page_not_found(e):
-    """404 error json response"""
-    return jsonify({'error': "Not found"}), 404
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 not found errors and return json object"""
+    return jsonify({"error": "Not found"}), 404
 
 
 @app.teardown_appcontext
-def teardown_appcontext(exc=None):
-    """called on teardown of app contexts of flask
-    """
+def close_storage(*args, **kwargs):
+    """Clost app storage (FileStorage or DBStorage)"""
     storage.close()
 
 
 if __name__ == "__main__":
-    """run the app if the script is not being imported
-    """
-    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
-    app.register_error_handler(404, page_not_found)
-    fetched_host = os.environ.get('HBNB_API_HOST')
-    fetched_port = os.environ.get('HBNB_API_PORT')
-    if fetched_host is None:
-        fetched_host = '0.0.0.0'
-    if fetched_port is None:
-        fetched_port = 5000
-    app.run(host=fetched_host, port=fetched_port, threaded=True)
+    host = getenv('HBNB_API_HOST', '0.0.0.0')
+    port = getenv('HBNB_API_PORT', '5000')
+    app.run(host=host, port=int(port))
